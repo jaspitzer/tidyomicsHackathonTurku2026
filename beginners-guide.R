@@ -37,9 +37,10 @@ data.frame(
 
 library(tidybulk)
 library(ggplot2)
+library(ggrepel)
 
 filt <- airway |>
-  identify_abundant(factor_of_interest = dex) |>
+  identify_abundant(formula_design = ~dex) |>
   scale_abundance(method = "RLE")
 
 de_airway <- filt |>
@@ -58,7 +59,7 @@ filt |>
   pivot_sample() |>
   ggplot(aes(PC1, PC2, color = dex, label = .sample)) +
   geom_point(size = 3) +
-  ggrepel::geom_text_repel() +
+  geom_text_repel() +
   theme_bw()
 
 # ============================================================
@@ -69,13 +70,16 @@ filt |>
 library(plyranges)
 library(fluentGenomics)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(GenomeInfoDb)
 
 data(peaks)
 peaks
 
-# Build promoter windows from UCSC knownGene (GRCh38)
+# Build promoter windows from UCSC knownGene (GRCh38), standard chromosomes only
 txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
-promoters_gr <- promoters(genes(txdb), upstream = 2000, downstream = 200)
+promoters_gr <- genes(txdb) |>
+  keepStandardChromosomes(pruning.mode = "coarse") |>
+  promoters(upstream = 2000, downstream = 200)
 
 # Tidy plyranges: count ATAC peaks per gene promoter
 peaks |>
