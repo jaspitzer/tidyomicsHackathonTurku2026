@@ -67,27 +67,18 @@ filt |>
 # ============================================================
 
 library(plyranges)
-library(readr)
+library(fluentGenomics)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 
-# Load ATAC-seq peaks from fluentGenomics
-peaks_file <- system.file("extdata", "ATAC_peak_metadata.txt.gz",
-                          package = "fluentGenomics")
-peaks_df <- read_tsv(peaks_file, col_types = c("cidciicdc"))
-
-peaks_gr <- peaks_df |>
-  as_granges(seqnames = chr) |>
-  select(peak_id = gene_id) |>
-  set_genome_info(genome = "GRCh38")
-
-peaks_gr
+data(peaks)
+peaks
 
 # Build promoter windows from UCSC knownGene (GRCh38)
 txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
 promoters_gr <- promoters(genes(txdb), upstream = 2000, downstream = 200)
 
 # Tidy plyranges: count ATAC peaks per gene promoter
-peaks_gr |>
+peaks |>
   join_overlap_inner(promoters_gr) |>
   group_by(gene_id) |>
   summarize(n_peaks = n())
