@@ -15,6 +15,12 @@ This hackathon brings together Tidyomics contributors and users to:
 - Implement new features and improvements
 - Improve documentation, tutorials, and vignettes
 
+## Official Communication
+
+We have a dedicated [channel](https://community-bioc.zulipchat.com/#narrow/channel/595963-eurobioc2026-turku-hackathon/topic/Tidyomics.20Project.20Channel/with/598365565) for the hackathon in the official Bioconductor Zulip server.
+
+The link for the virtual meeting room will be shared in this channel and via email.
+
 ## Before the Event
 
 Please complete the following steps before the event starts:
