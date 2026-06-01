@@ -21,6 +21,11 @@ We have a dedicated [channel](https://community-bioc.zulipchat.com/#narrow/chann
 
 The link for the virtual meeting room will be shared in this channel and via email.
 
+## Important links
+
+- [Minutes](https://docs.google.com/document/d/1N4nbkhIHvZRqixwUxYYboOPAW9dsi1X7dUjEnk5-Thw/edit?tab=t.0)
+- [Slides](https://docs.google.com/presentation/d/1yq-bYd7-7K3N3mXRLSrFwO9TXzTEG6Gp32vbnY_q0rg/edit?slide=id.p#slide=id.p)
+
 ## Before the Event
 
 Please complete the following steps before the event starts:
@@ -30,6 +35,14 @@ Please complete the following steps before the event starts:
 3. If an issue already exists for a problem you are interested in, react to it or leave a comment to signal your interest
 4. Based on the number of open issues, participants, and interest, groups and projects will be defined on the first day
 
+## Attendees
+
+- **Setevie Paderson:** [@smped](https://github.com/sped)
+- **Carissa Yan Nan Chen:** [@carissaynchen](https://github.com/carissaynchen)
+- **Jasper Spitzer:** [@jaspitzer](https://github.com/jaspitzer)
+- **Marco geigges:** 
+- **Juan Henao:** [@jdhenaos](https://github.com/jdhenaos)
+
 ## Resources
 
 - [Tidyomics GitHub organization](https://github.com/tidyomics)
@@ -37,9 +50,11 @@ Please complete the following steps before the event starts:
 
 ## Organizers
 
-**Juan Henao:** [@jdhenaos](https://github.com/jdhenaos)
-
-**Stevie Pederson:** [@smped](https://github.com/sped)
+- **Juan Henao:** [@jdhenaos](https://github.com/jdhenaos)
+- **Stevie Pederson:** [@smped](https://github.com/sped)
+- **Michael Love:** [@mikelove](https://github.com/mikelove)
+- **Stefano Mangiola:** [@stemangiola](https://github.com/stemangiola)
+- **Nicholas Cooley:** [@npcooley](https://github.com/npcooley)
 
 ## Code of Conduct
 
