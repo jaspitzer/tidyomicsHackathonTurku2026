@@ -40,7 +40,7 @@ Please complete the following steps before the event starts:
 - **Setevie Paderson:** [@smped](https://github.com/sped)
 - **Carissa Yan Nan Chen:** [@carissaynchen](https://github.com/carissaynchen)
 - **Jasper Spitzer:** [@jaspitzer](https://github.com/jaspitzer)
-- **Marco geigges:** 
+- **Marco Geigges:** [@mageigges](https://github.com/mageigges)
 - **Juan Henao:** [@jdhenaos](https://github.com/jdhenaos)
 
 ## Resources
