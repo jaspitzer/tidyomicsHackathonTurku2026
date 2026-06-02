@@ -231,35 +231,13 @@ res <- airway_mini |> identify_abundant() |> reduce_dimensions(assay = "counts",
 ```
 
 ```{r}
-testthat::expect_message(airway_mini |> 
-                           identify_abundant() |> 
-                           reduce_dimensions(assay = "counts", method = "PCA"), 
-                           "0.698")
-```
-
-```{r}
-"Getting the 77 most variable genes
-
-Fraction of variance explained by the selected principal components
-
-# A tibble: 2 × 2
-`Fraction of variance` PC
-<dbl> <int>
-1 0.698 1
-2 0.127 2
-
-tidybulk says: to access the raw results do `metadata(.)$tidybulk$PCA`"
-```
-
-```{r}
 airway = airway %>% 
   identify_abundant() %>% 
   test_differential_expression(~dex, method = "DESeq2")
 airway2 = airway %>% 
   test_differential_expression(~dex, method = "DESeq2", 
                                contrasts = list(c("dex", "trt", "untrt"),
-                                                c("dex", "untrt", "trt"),
-                                                c("dextrt")))
+                                                c("dex", "untrt", "trt")))
 ```
 
 ```{r}
@@ -275,37 +253,22 @@ tmp <- DESeq2::lfcShrink(dds = metadata(airway)$tidybulk$DESeq2_object,
                          res  = DESeq2::DESeqResults(as.data.frame(res_df)),
                          coef = "dex_untrt_vs_trt", apeAdapt = F
                          )
+
+DESeq2::lfcShrink(dds = metadata(airway)$tidybulk$DESeq2_object, 
+                         res  = DESeq2::DESeqResults(as.data.frame(res_df)),
+                  type = "ashr"
+                         )
+
 ```
 
 ```{r}
-adjust_simple <- function(SE, contrast = NULL){
-  deseq_object <- metadata(SE)$tidybulk$DESeq2_object #legibility
-  formula_terms <- tidybulk:::parse_formula(BiocGenerics::design(deseq_object)) # legibility
-  
-  if(!is.null(contrast)){
-    .coef = paste(contrast[1], contrast[2], "vs", contrast[3], sep = "_")
-  }else if(sum(stringr::str_detect(names(rowData(SE)), paste0("___", formula_terms, " .+\\-"))) > 1){
-    
-  }else if(is.null(contrast)){
-    factor_levels <- SE@colData[, formula_terms[1]] |> 
-      as.factor() |> 
-      levels()
-    contrast = c(formula_terms[1], 
-                 factor_levels[2], 
-                 factor_levels[1])
-    .coef = paste(contrast[1], contrast[2], "vs", contrast[3], sep = "_")
-  }
-  
-  adjust <- DESeq2::lfcShrink(dds = deseq_object, 
-                              res  = DESeq2::DESeqResults(BiocGenerics::as.data.frame(BiocGenerics::metadata(SE)$tidybulk$DESeq2_fit)), 
-                              coef = .coef,
-                              apeAdapt = F
-                         )
-  return(adjust)
-}
+adjust_effect_sizes(airway, c("dex", "untrt", "trt")) %>% class()
+adjust_effect_sizes(airway)
 
-adjust_simple(airway, c("dex", "untrt", "trt"))
-adjust_simple(airway)
+adjust_effect_sizes(airway2, prefix = "dex untrt-trt")
+
+S4Vectors::metadata(airway2)$tidybulk$DESeq2_fit %>% 
+      dplyr::select(transcript, contains("dex untrt-trt"))
 ```
 
 coefficient logic:
@@ -313,32 +276,3 @@ coefficient logic:
 if there is contrasts, I can build the coefficient
 
 if there
-
-```{r}
-SE@colData[, parse_formula(tidybulk:::parse_formula(design(dds)))[1]] |> 
-      as.factor() |> 
-      levels()
-```
-
-```{r}
-dds <- metadata(airway)$tidybulk$DESeq2_object
-res <- results(dds)
-tmp
-res_df
-mcols(res)$description
-```
-
-```{r}
-metadata(airway2)$tidybulk$DESeq2_fit
-```
-
-```{r}
-metadata(airway)$tidybulk
-metadata(airway2)$tidybulk
-
-mcols(metadata(airway)$tidybulk$DESeq2_fit)
-```
-
-```{r}
-res_df
-```
