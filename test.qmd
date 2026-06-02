@@ -1,0 +1,344 @@
+---
+title: "thoughts"
+author: "JS"
+format: html
+editor: visual
+---
+
+the vignette links of the tidyomics links are broken
+
+tidy summarised expriment
+
+and tidybulk
+
+```{r}
+library(here)
+library(tidyverse)
+library(tidyomics)
+library(tidybulk)
+library(airway)
+```
+
+```{r}
+friendly_cols <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+custom_theme <-
+  list(
+    scale_fill_manual(values = friendly_cols),
+    scale_color_manual(values = friendly_cols),
+    theme_bw() +
+      theme(
+        panel.border = element_blank(),
+        axis.line = element_line(),
+        panel.grid.major = element_line(size = 0.2),
+        panel.grid.minor = element_line(size = 0.1),
+        text = element_text(size = 12),
+        legend.position = "bottom",
+        strip.background = element_blank(),
+        axis.title.x = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10)),
+        axis.title.y = element_text(margin = margin(t = 10, r = 10, b = 10, l = 10)),
+        axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1)
+      )
+  )
+```
+
+```{r}
+seqdata <- read_tsv("https://ndownloader.figshare.com/files/5057929?private_link=1d788fd384d33e913a2a")
+sampleinfo <- read_tsv("https://ndownloader.figshare.com/files/5999832?private_link=1d788fd384d33e913a2a")
+
+```
+
+```{r}
+counts_long <- seqdata %>% pivot_longer(cols = starts_with("MCL"), names_to = "sample", values_to = "counts")
+counts_formatted <- counts_long %>% mutate(sample_name=str_extract(sample, "MCL1-.."))
+```
+
+```{r}
+sampleinfo_formatted <- sampleinfo %>%
+    # make column called Group by combining the CellType and Status columns
+    unite("Group", CellType:Status, sep=".", remove=FALSE) %>%
+    # replace the . in the SampleName with - so can join to counts
+    mutate(sample_name=str_replace(SampleName, "\\.", "-"))
+
+```
+
+```{r}
+data(airway)
+airway = airway |>
+  mutate(dex = as.factor(dex))
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+
+# Add gene symbol and entrez
+airway <-
+  airway |>
+  
+  mutate(entrezid = mapIds(org.Hs.eg.db,
+                                      keys = gene_name,
+                                      keytype = "SYMBOL",
+                                      column = "ENTREZID",
+                                      multiVals = "first"
+)) 
+```
+
+```{r}
+select <- dplyr::select
+```
+
+```{r}
+airway |>
+  ggplot(aes(counts + 1, group = .sample, color = dex)) +
+  geom_density() +
+  scale_x_log10() +
+  custom_theme +
+  labs(title = "Raw counts by treatment (before any filtering)")
+```
+
+```{r}
+airway = airway |> 
+  aggregate_duplicates(feature = "gene_name", aggregation_function = mean) %>% 
+  keep_abundant(minimum_counts = 10, minimum_proportion = 0.5)
+```
+
+```{r}
+airway  <- airway |> 
+    scale_abundance(method = "TMM", suffix = "_tmm") |>
+    scale_abundance(method = "upperquartile", suffix = "_upperquartile") |>
+    scale_abundance(method = "RLE", suffix = "_RLE")
+```
+
+```{r}
+airway = airway |>
+  reduce_dimensions("counts_tmm", method="MDS", .dims = 2)
+```
+
+```{r}
+airway = airway |>
+  reduce_dimensions("counts_tmm", method="PCA", .dims = 2)
+
+airway = airway |>
+  reduce_dimensions("counts_tmm", method="tSNE", .dims = 2)
+```
+
+```{r}
+airway
+```
+
+```{r}
+airway |>
+    pivot_sample() |>
+    ggplot(aes(x=`PC1`, y=`PC2`, color=`dex`)) +
+    geom_point() +
+    custom_theme +
+    labs(title = "PCA Analysis")
+```
+
+```{r}
+airway |>
+    pivot_sample() %>% 
+  ggplot(aes(PC1, PC2, color = dex))+
+  geom_point()+
+  custom_theme
+```
+
+```{r}
+plotPCA <- function(SE, VAR, type = "PCA"){
+  varname <- rlang::ensym(VAR)
+  
+  p <- SE %>% 
+    pivot_sample() %>% 
+    ggplot2::ggplot(ggplot2::aes(PC1, PC2, color = !!varname))+
+    ggplot2::geom_point()
+  
+  if(type == "PCA"){
+    pca_res <- S4Vectors::metadata(airway)$tidybulk$PCA
+    vars <- pca_res[[1]]^2 / sum(pca_res[[1]]^2)
+    
+    p <- p +
+      ggplot2::labs(x = paste0("PC1 (", round(vars[1] * 100), "% variance explained)"),
+           y = paste0("PC2 (", round(vars[2] * 100), "% variance explained)"))
+  }
+  return(p)
+}
+
+
+
+airway %>% 
+  plotPCA(dex)+
+  custom_theme
+airway %>% 
+  plotPCA("dex")+
+  custom_theme
+
+
+airway %>% 
+  pivot_sample()
+```
+
+needs checks for PCA, MDS and tSNE
+
+```{r}
+plot_reduced_dim <- function(SE, VAR, type = "PCA", dims = 1:2){
+  varname <- rlang::ensym(VAR)
+  
+  dim_type <- dplyr::case_when(
+    stringr::str_to_lower(type) == stringr::str_to_lower("PCA") ~ "pca",
+    stringr::str_to_lower(type) == stringr::str_to_lower("MDS") ~ "mds",
+    stringr::str_to_lower(type) == stringr::str_to_lower("tSNE") ~ "tsne",
+    stringr::str_to_lower(type) == stringr::str_to_lower("UMAP") ~ "umap")
+  
+  coord_naming <- dplyr::case_when(
+    dim_type == "pca" ~ "PC",
+    dim_type == "mds" ~ "Dim",
+    dim_type == "tsne" ~ "tSNE",
+    dim_type == "umap" ~ "UMAP")
+  
+  df <- SE %>% 
+    pivot_sample()
+  
+  coord_names <- names(df)[stringr::str_detect(names(df), paste0("^", coord_naming, "\\d+"))]
+  coord_names <- coord_names[dims]
+  
+  
+  p <- SE %>% 
+    pivot_sample() %>% 
+    ggplot2::ggplot(ggplot2::aes(.data[[coord_names[1]]], .data[[coord_names[2]]], color = !!varname))+
+    ggplot2::geom_point()
+  
+  if(dim_type == "pca"){
+    pca_res <- S4Vectors::metadata(airway)$tidybulk$PCA
+    vars <- pca_res[[1]]^2 / sum(pca_res[[1]]^2)
+    
+    p <- p +
+      ggplot2::labs(x = paste0("PC1 (", round(vars[1] * 100), "% variance explained)"),
+           y = paste0("PC2 (", round(vars[2] * 100), "% variance explained)"))
+  }
+  return(p)
+}
+
+
+
+airway %>% 
+  plot_reduced_dim(cell, "MDS")+
+  custom_theme
+
+```
+
+```{r}
+data("airway")
+airway_mini <- airway[1:100, 1:5]
+
+res <- airway_mini |> identify_abundant() |> reduce_dimensions(assay = "counts", method = "PCA")
+```
+
+```{r}
+testthat::expect_message(airway_mini |> 
+                           identify_abundant() |> 
+                           reduce_dimensions(assay = "counts", method = "PCA"), 
+                           "0.698")
+```
+
+```{r}
+"Getting the 77 most variable genes
+
+Fraction of variance explained by the selected principal components
+
+# A tibble: 2 × 2
+`Fraction of variance` PC
+<dbl> <int>
+1 0.698 1
+2 0.127 2
+
+tidybulk says: to access the raw results do `metadata(.)$tidybulk$PCA`"
+```
+
+```{r}
+airway = airway %>% 
+  identify_abundant() %>% 
+  test_differential_expression(~dex, method = "DESeq2")
+airway2 = airway %>% 
+  test_differential_expression(~dex, method = "DESeq2", 
+                               contrasts = list(c("dex", "trt", "untrt"),
+                                                c("dex", "untrt", "trt"),
+                                                c("dextrt")))
+```
+
+```{r}
+metadata(airway)$tidybulk$DESeq2_object
+```
+
+```{r}
+airway %>% pivot_transcript()
+res_df <- metadata(airway)$tidybulk$DESeq2_fit
+
+
+tmp <- DESeq2::lfcShrink(dds = metadata(airway)$tidybulk$DESeq2_object, 
+                         res  = DESeq2::DESeqResults(as.data.frame(res_df)),
+                         coef = "dex_untrt_vs_trt", apeAdapt = F
+                         )
+```
+
+```{r}
+adjust_simple <- function(SE, contrast = NULL){
+  deseq_object <- metadata(SE)$tidybulk$DESeq2_object #legibility
+  formula_terms <- tidybulk:::parse_formula(BiocGenerics::design(deseq_object)) # legibility
+  
+  if(!is.null(contrast)){
+    .coef = paste(contrast[1], contrast[2], "vs", contrast[3], sep = "_")
+  }else if(sum(stringr::str_detect(names(rowData(SE)), paste0("___", formula_terms, " .+\\-"))) > 1){
+    
+  }else if(is.null(contrast)){
+    factor_levels <- SE@colData[, formula_terms[1]] |> 
+      as.factor() |> 
+      levels()
+    contrast = c(formula_terms[1], 
+                 factor_levels[2], 
+                 factor_levels[1])
+    .coef = paste(contrast[1], contrast[2], "vs", contrast[3], sep = "_")
+  }
+  
+  adjust <- DESeq2::lfcShrink(dds = deseq_object, 
+                              res  = DESeq2::DESeqResults(BiocGenerics::as.data.frame(BiocGenerics::metadata(SE)$tidybulk$DESeq2_fit)), 
+                              coef = .coef,
+                              apeAdapt = F
+                         )
+  return(adjust)
+}
+
+adjust_simple(airway, c("dex", "untrt", "trt"))
+adjust_simple(airway)
+```
+
+coefficient logic:
+
+if there is contrasts, I can build the coefficient
+
+if there
+
+```{r}
+SE@colData[, parse_formula(tidybulk:::parse_formula(design(dds)))[1]] |> 
+      as.factor() |> 
+      levels()
+```
+
+```{r}
+dds <- metadata(airway)$tidybulk$DESeq2_object
+res <- results(dds)
+tmp
+res_df
+mcols(res)$description
+```
+
+```{r}
+metadata(airway2)$tidybulk$DESeq2_fit
+```
+
+```{r}
+metadata(airway)$tidybulk
+metadata(airway2)$tidybulk
+
+mcols(metadata(airway)$tidybulk$DESeq2_fit)
+```
+
+```{r}
+res_df
+```
